@@ -1,14 +1,45 @@
 import requests
+import pandas as pd
 
-url_arquivo = "https://balanca.economia.gov.br/balanca/bd/comexstat-bd/ncm/IMP_2023.csv"
-caminho_destino = "importacoes_2023.csv"
+TOKEN = 'dfe78fa42f4ed0b2f9c53199e5292de2784da454bdd25f6db1271dcc19c0bcd5'
+headers = {
+    'Authorization': f'Bearer {TOKEN}',
+    'Content-Type': 'application/hal+json',
+    'Accept-Version': '3.0'
+}
 
-# O parâmetro stream=True evita carregar o arquivo inteiro na RAM de uma vez
-with requests.get(url_arquivo, stream=True) as response:
-    response.raise_for_status()
-    with open(caminho_destino, "wb") as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            if chunk:
-                f.write(chunk)
+# Parâmetros de busca (ex: Guitarras Fender de $500 a $2000)
+params = {
+    'query': 'Fender Stratocaster',
+    'price_min': 500,
+    'price_max': 2000,
+    'currency': 'USD',
+    'per_page': 50
+}
 
-print("Download concluído com sucesso!")
+url = 'https://api.reverb.com/api/listings/all'
+response = requests.get(url, headers=headers, params=params)
+
+if response.status_code == 200:
+    data = response.json()
+    listings = data.get('listings', [])
+    
+    instrument_data = []
+    for item in listings:
+        instrument_data.append({
+            'id': item.get('id'),
+            'titulo': item.get('title'),
+            'marca': item.get('make'),
+            'modelo': item.get('model'),
+            'ano': item.get('finish_year'),
+            'preco_valor': item.get('price', {}).get('amount'),
+            'moeda': item.get('price', {}).get('currency'),
+            'condicao': item.get('condition', {}).get('display_name'),
+            'data_criacao': item.get('created_at')
+        })
+    
+    df_reverb = pd.DataFrame(instrument_data)
+    df_reverb.to_csv('vendas_reverb.csv', index=False)
+    print(f"{len(df_reverb)} instrumentos encontrados e salvos!")
+else:
+    print(f"Erro na requisição: {response.status_code}")
