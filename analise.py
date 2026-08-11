@@ -4,5 +4,6 @@
 
 import pandas as pd
 
-df = pd.read_csv('importacoes_2023.csv', sep=';', encoding='utf-8')
+df = pd.read_csv('vendas_reverb.csv', sep=',', encoding='utf-8')
 
+print(df.head())
